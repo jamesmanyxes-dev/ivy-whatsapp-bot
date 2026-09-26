@@ -1,0 +1,18 @@
+{
+  "name": "ivy-whatsapp-bot",
+  "version": "1.0.0",
+  "description": "Everything By Ivy — WhatsApp bot (Baileys) with web pairing",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "type": "commonjs",
+  "dependencies": {
+    "baileys": "^7.0.0-rc14",
+    "express": "^5.2.1",
+    "qrcode": "^1.5.4"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
