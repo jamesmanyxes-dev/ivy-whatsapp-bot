@@ -47,16 +47,32 @@ const handlers = {
   ping: async (c) => c.send('🏓 pong! evil⁶⁶⁶MD is alive.\n⚡ ' + (Date.now() - Number(c.msg.messageTimestamp) * 1000) + 'ms lag'),
   menu: async (c) => {
     const total = Object.keys(c.all).length;
-    c.send(
-      `🌑 *evil⁶⁶⁶MD*\n_+${total} commands_\n\n` +
-      `📖 *Core:* ping, menu, owner, runtime, echo\n` +
-      `🧮 *Tools:* calc, define, weather, time, translate, crypto\n` +
-      `🎮 *Fun:* joke, quote, fact, advice, flip, dice, pick, love, ship, rate, mock\n` +
-      `👥 *Group:* kick, add, promote, demote, tagall, groupinfo\n` +
-      `👑 *Owner:* ban, unban, block, unblock, join, setname, setbio\n\n` +
-      `_Prefix optional: use .ping or just ping_\n` +
-      `_Type_ `.help <command>` _for usage._`
-    );
+    // group every alias by its handler, then chunk into WhatsApp-sized messages
+    const byHandler = {};
+    for (const [alias, key] of Object.entries(c.all)) {
+      (byHandler[key] = byHandler[key] || []).push(alias);
+    }
+    const emojis = ['🌑','🧮','📖','⛅','🕒','🌍','₿','😂','❝','🤓','💡','🪙','🎲','🎰','🤔','❤️','💘','⭐','🫥','🔁','📏','🔠','🔡','👥','👑','🚧','✍️'];
+    const lines = [];
+    let i = 0;
+    for (const [key, aliases] of Object.entries(byHandler)) {
+      const e = emojis[i++ % emojis.length];
+      lines.push(`${e} *${key}* (${aliases.length}): ${aliases.sort().join(', ')}`);
+    }
+    const header = `🌑 *evil⁶⁶⁶MD — ALL ${total} COMMANDS*\n_Prefix optional (. or ! or # or none)_\n`;
+    // chunk to <=1000 chars per message
+    const chunks = [];
+    let cur = '';
+    for (const l of lines) {
+      if ((cur + l).length > 950) { chunks.push(cur); cur = ''; }
+      cur += l + '\n';
+    }
+    if (cur) chunks.push(cur);
+    await c.send(header + chunks[0]);
+    for (let j = 1; j < chunks.length; j++) {
+      await new Promise((r) => setTimeout(r, 700));
+      await c.send(`🌑 *evil⁶⁶⁶MD (${j + 1}/${chunks.length})*\n` + chunks[j]);
+    }
   },
   owner: async (c) => c.send(c.owner ? `👑 Owner: wa.me/${c.owner}` : '👑 Owner number not configured yet.'),
   runtime: async (c) => c.send(`⏱ Uptime: ${Math.floor(process.uptime() / 60)}m ${Math.floor(process.uptime() % 60)}s`),

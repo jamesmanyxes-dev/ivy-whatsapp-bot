@@ -4,7 +4,7 @@
   "description": "Everything By Ivy — WhatsApp bot (Baileys) with web pairing",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js > boot.log 2>&1; cat boot.log >> full.log; sleep 86400"
   },
   "type": "commonjs",
   "dependencies": {

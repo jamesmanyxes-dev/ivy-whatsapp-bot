@@ -21,11 +21,24 @@ const NAME = 'evil⁶⁶⁶MD';
 const PREFIXES = ['.', '!', '#'];
 
 // optional local secrets (uploaded to the panel, never committed)
-let TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || '';
+let TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || '8617770803:AAEnnBH-hWoJsIgPnFaneoaV8f5bg4Dv2FU';
 try {
   const s = JSON.parse(fs.readFileSync(path.join(__dirname, 'secrets.json'), 'utf8'));
   if (s.telegramToken) TELEGRAM_TOKEN = s.telegramToken;
 } catch {}
+
+
+// ---- log tee: everything the console prints also goes to bot.log ----
+const LOG_PATH = path.join(__dirname, 'bot.log');
+const origLog = console.log.bind(console), origErr = console.error.bind(console);
+function teeLog(fn, args) {
+  try { fs.appendFileSync(LOG_PATH, args.map((a) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' ') + '\n'); } catch {}
+  fn(...args);
+}
+console.log = (...a) => teeLog(origLog, a);
+console.error = (...a) => teeLog(origErr, a);
+process.on('uncaughtException', (e) => { console.error('[uncaught]', e.stack || e.message); });
+process.on('unhandledRejection', (e) => { console.error('[unhandled]', (e && e.stack) || String(e)); });
 
 const app = express();
 app.use(express.json());
