@@ -14,7 +14,7 @@ const {
 } = require('baileys');
 const cmd = require('./commands');
 
-const PORT = Number(process.env.PORT || 3000);
+const PORT = Number(process.env.PORT || process.env.SERVER_PORT || 3000);
 const AUTH_DIR = path.join(__dirname, 'auth');
 const OWNER = process.env.OWNER_NUMBER || '';
 const NAME = 'evil⁶⁶⁶MD';
