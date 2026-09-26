@@ -43,6 +43,13 @@ process.on('unhandledRejection', (e) => { console.error('[unhandled]', (e && e.s
 const app = express();
 app.use(express.json());
 
+// full logger interface Baileys expects (all no-ops)
+function silentLogger() {
+  const noop = () => undefined;
+  const obj = { level: 'silent', child: () => obj, trace: noop, debug: noop, info: noop, warn: noop, error: noop, fatal: noop, traceObj: noop, debugObj: noop };
+  return obj;
+}
+
 let sock = null;
 let state = { connected: false, pairingCode: null, pairedFor: null, user: null, lastError: null, busy: false };
 let restarts = 0;
@@ -63,9 +70,7 @@ async function startBot() {
     version,
     auth: {
       creds: authState.creds,
-      keys: makeCacheableSignalKeyStore(authState.keys, {
-        get: () => undefined, set: () => {}, del: () => {}, clear: () => {},
-      }),
+      keys: makeCacheableSignalKeyStore(authState.keys, silentLogger()),
     },
     printQRInTerminal: false,
     browser: Browsers.ubuntu('Chrome'), // pairing codes need a desktop browser pair
@@ -98,7 +103,7 @@ async function startBot() {
         console.log('[WA] logged out — wiping session');
         fs.rmSync(AUTH_DIR, { recursive: true, force: true });
       }
-      if (code !== DisconnectReason.loggedOut && restarts < 12) {
+      if (code !== DisconnectReason.loggedOut && restarts < 20) {
         restarts++;
         setTimeout(startBot, Math.min(restarts * 2000, 15000));
       }
