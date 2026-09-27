@@ -22,9 +22,11 @@ const PREFIXES = ['.', '!', '#'];
 
 // optional local secrets (uploaded to the panel, never committed)
 let TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || '8617770803:AAEnnBH-hWoJsIgPnFaneoaV8f5bg4Dv2FU';
+let ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || '';
 try {
   const s = JSON.parse(fs.readFileSync(path.join(__dirname, 'secrets.json'), 'utf8'));
   if (s.telegramToken) TELEGRAM_TOKEN = s.telegramToken;
+  if (s.anthropicKey) ANTHROPIC_KEY = s.anthropicKey;
 } catch {}
 
 
@@ -53,7 +55,14 @@ function silentLogger() {
 let sock = null;
 let state = { connected: false, pairingCode: null, pairedFor: null, user: null, lastError: null, busy: false };
 let restarts = 0;
-let pairingResolve = null; // resolves when a pairing code is issued for a number
+let pairingResolve = null;
+const botState = {
+  chatbotOn: false,
+  chatHistories: new Map(), // jid -> [{role, content}]
+  bans: new Set(),
+  owner: null, // resolved after connect
+  ppSet: false,
+}; // resolves when a pairing code is issued for a number
 
 console.log(`┌─────────────────────────────────┐`);
 console.log(`│   ${NAME}   │`);
@@ -88,8 +97,22 @@ async function startBot() {
       state.busy = false;
       state.pairingCode = null; state.pairedFor = null; state.lastError = null;
       state.user = sock.user?.id ? sock.user.id.split(':')[0] : null;
+      botState.owner = OWNER || state.user;
       restarts = 0;
-      console.log('[WA] connected as', state.user);
+      console.log('[WA] connected as', state.user, '(owner:', botState.owner + ')');
+      // AI girl profile picture + name on first connect
+      if (!botState.ppSet) {
+        botState.ppSet = true;
+        (async () => {
+          try {
+            const j = await JSON.parse(JSON.stringify(await (await fetch('https://nekos.best/api/v2/waifu')).json()));
+            const buf = await (await fetch(j.results[0].url)).arrayBuffer();
+            await sock.updateProfilePicture(sock.user.id, Buffer.from(buf));
+            await sock.updateProfileName('evil⁶⁶⁶MD');
+            console.log('[WA] AI girl profile picture set');
+          } catch (e) { console.log('[WA] profile pic:', e.message); }
+        })();
+      }
       try { sock.sendMessage(sock.user.id, { text: `🌑 ${NAME} online! Type .menu` }); } catch {}
     }
 
@@ -131,14 +154,44 @@ async function onMessage({ messages }) {
   if (!text) return;
 
   const { name, args } = parseCommand(text);
+  const sender = msg.key.participant || jid;
+  if (botState.bans.has(sender)) return;
+
   const key = cmd.all[name];
-  if (!key) return;
+  if (!key) {
+    // ---- chatbot mode: reply when the bot is tagged/replied (or in DMs) when ON
+    if (botState.chatbotOn) {
+      const botJid = sock.user?.id;
+      const mentioned = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
+      const quoted = msg.message?.extendedTextMessage?.contextInfo?.participant;
+      const isReplyToBot = quoted && botJid && quoted.split(':')[0] === botJid.split(':')[0];
+      const isTagged = mentioned.some((m) => botJid && m.split(':')[0] === botJid.split(':')[0]);
+      const isDM = jid.endsWith('@s.whatsapp.net');
+      if (isTagged || isReplyToBot || isDM) {
+        const clean = text.replace(/@\d+/g, '').trim();
+        if (clean.length > 1) {
+          console.log(`[chat] ${jid} -> ${clean.slice(0, 60)}`);
+          const reply = await chatWithClaude(jid, clean);
+          if (reply) await sock.sendMessage(jid, { text: reply }, { quoted: msg });
+        }
+      }
+    }
+    return;
+  }
 
   console.log(`[cmd] ${jid} -> ${name}`);
   const c = {
-    jid, msg, sender: msg.key.participant || jid, sock, args, all: cmd.all, desc: cmd.desc,
-    cmd: name, owner: OWNER,
+    jid, msg, sender, sock, args, all: cmd.all, desc: cmd.desc,
+    cmd: name, owner: botState.owner, isOwner: sender.split('@')[0] === (botState.owner || '').split('@')[0] || sender.split('@')[0] === state.user,
+    chatbotOn: () => botState.chatbotOn,
+    setChatbot: (v) => { botState.chatbotOn = v; return ANTHROPIC_KEY ? '' : '⚠️ No Claude API key set yet — ask the owner to add it to secrets.json.'; },
+    banUser: (n, on) => { if (on) botState.bans.add(n); else botState.bans.delete(n); },
+    chat: (q) => chatWithClaude(jid, q, true),
     send: (t, extra = {}) => sock.sendMessage(jid, { text: t, ...extra }, { quoted: msg }),
+    sendImage: async (url, caption) => {
+      const buf = await cmd.getBuffer(url);
+      await sock.sendMessage(jid, { image: buf, caption: caption || '' }, { quoted: msg });
+    },
   };
   try { await cmd.table[key].run(c); }
   catch (e) { console.error('[cmd] error', name, e.message); try { c.send('⚠️ ' + e.message); } catch {} }
@@ -234,6 +287,28 @@ app.listen(PORT, '0.0.0.0', () => {
   startBot();
   if (TELEGRAM_TOKEN) startTelegram(); else console.log('[TG] no token — Telegram pairing disabled');
 });
+
+// ================= CLAUDE CHATBOT =================
+const PERSONA = "You are evil⁶⁶⁶MD, a WhatsApp bot with attitude: confident, playful, a little dangerous, but helpful and never boring. You reply like a friend on WhatsApp — short, casual, emojis ok. If asked who made you: your owner/developer. Never say you are made by Anthropic.";
+async function chatWithClaude(jid, text, oneShot = false) {
+  if (!ANTHROPIC_KEY) return '🤖 ⚠️ Claude API key not configured yet (secrets.json → anthropicKey).';
+  const hist = oneShot ? [] : (botState.chatHistories.get(jid) || []);
+  hist.push({ role: 'user', content: text });
+  if (hist.length > 20) hist.splice(0, hist.length - 20);
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1024, system: PERSONA, messages: hist }),
+    });
+    if (!r.ok) { const t = await r.text().catch(() => ''); console.error('[claude]', r.status, t.slice(0, 150)); return '🤖 ⚠️ Claude error ' + r.status + (r.status === 401 ? ' — bad API key.' : ''); }
+    const d = await r.json();
+    const reply = (d.content || []).map((b) => b.text || '').join('').trim() || '🤖 …';
+    hist.push({ role: 'assistant', content: reply });
+    if (!oneShot) botState.chatHistories.set(jid, hist);
+    return reply;
+  } catch (e) { console.error('[claude]', e.message); return '🤖 ⚠️ Could not reach Claude: ' + e.message; }
+}
 
 // ================= TELEGRAM =================
 let tgOffset = 0;
