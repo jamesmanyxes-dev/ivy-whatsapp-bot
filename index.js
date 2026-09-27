@@ -218,58 +218,100 @@ async function requestPairingCode(number) {
 app.use(express.json());
 app.get('/', (req, res) => {
   res.type('html').send(`<!doctype html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>evil⁶⁶⁶MD — Pair</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>evil\u2076\u2076\u2076MD — Pair</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>\u263e</text></svg>">
 <style>
-body{background:#050608;color:#e8edf4;font-family:-apple-system,Segoe UI,Roboto,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100dvh;margin:0}
-.card{background:#0d1117;border:1px solid #232b38;border-radius:20px;padding:30px;max-width:420px;text-align:center;width:92%}
-h1{font-size:22px;margin:0 0 2px} .sub{color:#8b96a8;font-size:13px;margin-bottom:14px}
-.pill{display:inline-block;padding:6px 14px;border-radius:999px;font-size:13px;font-weight:600;margin-bottom:10px}
-.ok{background:rgba(52,211,153,.15);color:#34d399}.warn{background:rgba(234,179,8,.12);color:#fde68a}.err{background:rgba(244,63,94,.12);color:#fda4af}
-input{width:100%;box-sizing:border-box;background:#161d27;border:1px solid #232b38;color:#e8edf4;border-radius:12px;padding:13px;font-size:16px;margin:10px 0}
-button{background:#34d399;color:#04120c;border:0;border-radius:12px;padding:12px 22px;font-weight:700;cursor:pointer;font-size:15px;width:100%}
-button:disabled{opacity:.4}
-.code{font-family:monospace;font-size:34px;letter-spacing:8px;background:#050608;border:1px solid #34d39955;border-radius:14px;padding:18px 8px;margin:14px 0;color:#34d399;font-weight:700}
-.steps{text-align:left;color:#8b96a8;font-size:13px;line-height:1.9;margin-top:14px}
-.tg{margin-top:14px;font-size:12.5px;color:#8b96a8}
-a{color:#34d399}
-.spin{display:inline-block;width:14px;height:14px;border:2px solid #34d39955;border-top-color:#34d399;border-radius:50%;animation:sp 1s linear infinite;vertical-align:-2px;margin-right:6px}
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap');
+:root{--bg:#050507;--card:rgba(16,16,22,.72);--line:rgba(255,255,255,.08);--txt:#f2f3f7;--mut:#9aa0ae;--acc:#a78bfa;--acc2:#7c3aed;--ok:#34d399;--warn:#fbbf24}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'Space Grotesk',system-ui,sans-serif;background:var(--bg);color:var(--txt);min-height:100dvh;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+/* aurora background */
+.aurora{position:fixed;inset:-40%;z-index:0;filter:blur(90px);opacity:.5;background:
+ radial-gradient(40% 40% at 20% 30%,#7c3aed55 0%,transparent 60%),
+ radial-gradient(35% 35% at 80% 20%,#2563eb44 0%,transparent 60%),
+ radial-gradient(45% 45% at 70% 80%,#db277733 0%,transparent 60%),
+ radial-gradient(30% 30% at 30% 85%,#06b6d433 0%,transparent 60%);
+ animation:drift 22s ease-in-out infinite alternate}
+@keyframes drift{0%{transform:rotate(0deg) scale(1)}50%{transform:rotate(8deg) scale(1.15)}100%{transform:rotate(-6deg) scale(1.05)}}
+.grain{position:fixed;inset:0;z-index:1;opacity:.05;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='.6'/%3E%3C/svg%3E")}
+.card{position:relative;z-index:2;width:min(94vw,400px);background:var(--card);backdrop-filter:blur(24px);border:1px solid var(--line);border-radius:26px;padding:34px 28px 28px;text-align:center;box-shadow:0 30px 80px -20px rgba(124,58,237,.25),inset 0 1px 0 rgba(255,255,255,.06);animation:rise .8s cubic-bezier(.2,.9,.3,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(26px) scale(.97)}to{opacity:1;transform:none}}
+.logo{width:74px;height:74px;margin:0 auto 16px;border-radius:22px;display:grid;place-items:center;font-size:34px;background:linear-gradient(135deg,#7c3aed,#2563eb 60%,#db2777);box-shadow:0 10px 30px -6px rgba(124,58,237,.6);position:relative;animation:float 5s ease-in-out infinite}
+.logo::after{content:'';position:absolute;inset:-6px;border-radius:26px;border:1px solid rgba(167,139,250,.35);animation:pulse 2.6s ease-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@keyframes pulse{0%{opacity:.9;transform:scale(1)}70%,100%{opacity:0;transform:scale(1.25)}}
+h1{font-size:25px;font-weight:700;letter-spacing:.5px;margin-bottom:4px}
+h1 span{background:linear-gradient(90deg,#a78bfa,#60a5fa,#f472b6);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--mut);font-size:13.5px;margin-bottom:20px}
+.badge{display:inline-flex;align-items:center;gap:7px;padding:6px 14px;border-radius:999px;font-size:12.5px;font-weight:600;margin-bottom:18px;background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--mut);transition:all .3s}
+.badge .dot{width:7px;height:7px;border-radius:50%;background:var(--warn);animation:blink 1.6s infinite}
+@keyframes blink{50%{opacity:.3}}
+.badge.ok{color:var(--ok);border-color:rgba(52,211,153,.3)}.badge.ok .dot{background:var(--ok);animation:none}
+.badge.err{color:#f87171;border-color:rgba(248,113,113,.3)}.badge.err .dot{background:#f87171;animation:none}
+input{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--txt);border-radius:14px;padding:12px 14px;font-size:15px;outline:none;text-align:center;letter-spacing:1px;transition:border .25s,box-shadow .25s}
+input:focus{border-color:var(--acc);box-shadow:0 0 0 4px rgba(124,58,237,.18)}
+input::placeholder{color:#5b6070;font-size:13.5px}
+button{width:100%;margin-top:12px;padding:13px;border:0;border-radius:14px;font:600 15px 'Space Grotesk',sans-serif;cursor:pointer;color:#fff;background:linear-gradient(135deg,#7c3aed,#4f46e5);box-shadow:0 8px 24px -8px rgba(124,58,237,.7);transition:transform .15s,box-shadow .15s,opacity .2s}
+button:hover{transform:translateY(-2px);box-shadow:0 12px 28px -8px rgba(124,58,237,.85)}
+button:active{transform:translateY(0)}
+button:disabled{opacity:.5;cursor:wait;transform:none}
+.code{font-family:ui-monospace,monospace;font-size:34px;letter-spacing:10px;font-weight:700;color:#fff;background:linear-gradient(135deg,rgba(124,58,237,.25),rgba(59,130,246,.2));border:1px solid rgba(167,139,250,.4);border-radius:16px;padding:16px 6px;margin:16px 0 6px;text-shadow:0 0 24px rgba(167,139,250,.8);animation:glow 2.2s ease-in-out infinite}
+@keyframes glow{0%,100%{box-shadow:0 0 18px rgba(124,58,237,.25)}50%{box-shadow:0 0 34px rgba(124,58,237,.55)}}
+.code .ch{display:inline-block;animation:flip .5s cubic-bezier(.2,.9,.3,1) both}
+@keyframes flip{from{opacity:0;transform:translateY(-14px) rotateX(80deg)}to{opacity:1;transform:none}}
+.steps{margin-top:16px;text-align:left;color:var(--mut);font-size:12.8px;line-height:2;animation:rise .6s .2s both}
+.steps b{color:var(--txt)}
+.tg{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);font-size:12px;color:var(--mut)}
+.tg a{color:var(--acc);text-decoration:none;font-weight:600}
+.spin{width:16px;height:16px;border:2px solid rgba(167,139,250,.25);border-top-color:var(--acc);border-radius:50%;display:inline-block;animation:sp .8s linear infinite;vertical-align:-3px;margin-right:8px}
 @keyframes sp{to{transform:rotate(360deg)}}
-</style></head><body><div class="card">
-<h1>🌑 evil⁶⁶⁶MD</h1>
-<div class="sub">WhatsApp pairing — by number, no QR</div>
-<div id="box"><span class="spin"></span>Connecting…</div>
-<div class="steps" id="steps" style="display:none">
-1. WhatsApp → <b>Settings → Linked Devices → Link a Device</b><br>
-2. Tap <b>“Link with phone number instead”</b><br>
-3. Type the code above.
+footer{position:fixed;bottom:14px;left:0;right:0;text-align:center;font-size:11px;color:#4b4f5c;z-index:2}
+</style></head><body>
+<div class="aurora"></div><div class="grain"></div>
+<div class="card">
+ <div class="logo">\u263e</div>
+ <h1>evil<span>\u2076\u2076\u2076MD</span></h1>
+ <div class="sub">WhatsApp pairing portal</div>
+ <div class="badge" id="badge"><span class="dot"></span><span id="btxt">connecting\u2026</span></div>
+ <div id="box"></div>
+ <div class="tg">Prefer Telegram? Open <a href="https://t.me/Gojo_saturo_evil_bot">@Gojo_saturo_evil_bot</a> and send /pair</div>
 </div>
-<div class="tg">You can also pair from Telegram: open the evil⁶⁶⁶MD bot on Telegram and send <b>/pair your-number</b>.</div>
-</div>
+<footer>evil\u2076\u2076\u2076MD \u00b7 powered by Baileys</footer>
 <script>
+var code=null;
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function codeHTML(c){return '<div class="code">'+c.split('').map(function(ch,i){return '<span class="ch" style="animation-delay:'+(i*60)+'ms">'+esc(ch)+'</span>'}).join('')+'</div><div class="steps" style="display:block"><b>1.</b> WhatsApp \u2192 <b>Settings \u2192 Linked Devices</b> \u2192 Link a Device<br><b>2.</b> Tap <b>\u201cLink with phone number instead\u201d</b><br><b>3.</b> Type the code above \u2014 done \u2728</div>'}
+function form(){return '<input id="num" inputmode="numeric" maxlength="15" placeholder="your number, e.g. 233 50 123 4567"><button id="go">Get pairing code</button>'}
 async function pair(){
-  const n = document.getElementById('num').value.trim().replace(/[^0-9]/g,'');
-  if(!n) return alert('Enter your number with country code, e.g. 233501234567');
-  const b=document.querySelector('button'); b.disabled=true; b.textContent='Getting code…';
-  const r=await fetch('/pair?number='+n); const j=await r.json(); b.disabled=false; b.textContent='Get pairing code';
-  if(j.error){alert(j.error); return;}
-  render(j.code);
+ var n=document.getElementById('num').value.replace(/[^0-9]/g,'');
+ if(!n){shake();return}
+ var b=document.getElementById('go');b.disabled=true;b.innerHTML='<span class="spin"></span>Requesting\u2026';
+ var r=await fetch('/pair?number='+n);var j=await r.json();
+ if(j.error){b.disabled=false;b.textContent='Get pairing code';setBadge('err',j.error);return}
+ code=j.code;render();
 }
-function render(code){
-  document.getElementById('box').innerHTML = code
-    ? '<div>📱 Your pairing code:</div><div class="code">'+code+'</div>'
-    : '<div id="numwrap"><input id="num" placeholder="Number with country code e.g. 233501234567"><button onclick="pair()">Get pairing code</button></div>';
-  if(code) document.getElementById('steps').style.display='block';
+function shake(){var e=document.getElementById('num');e.style.borderColor='#f87171';e.style.animation='none';e.offsetHeight;e.style.animation='shake .4s'}
+function setBadge(t,txt){var b=document.getElementById('badge');b.className='badge '+(t||'');document.getElementById('btxt').textContent=txt}
+function render(){
+ var box=document.getElementById('box');
+ if(code){box.innerHTML=codeHTML(code);setBadge('ok','code ready \u2014 expires in ~2 min');return}
+ box.innerHTML=form();
+ document.getElementById('go').onclick=pair;
+ document.getElementById('num').addEventListener('keydown',function(e){if(e.key==='Enter')pair()});
 }
 async function refresh(){
-  try{
-    const s=await (await fetch('/status')).json();
-    if(s.connected){document.getElementById('box').innerHTML='<span class="pill ok">✅ Connected as +'+s.user+'</span><div style="margin-top:8px">Bot is live. Type .menu on WhatsApp.</div>';return;}
-    if(s.pairingCode){render(s.pairingCode);return;}
-    document.getElementById('box').innerHTML='<span class="pill warn">⏳ Waiting for pairing…</span><div id="numwrap"><input id="num" placeholder="Number with country code e.g. 233501234567"><button onclick="pair()">Get pairing code</button></div>';
-  }catch(e){document.getElementById('box').innerHTML='<span class="pill err">Server unreachable — retrying…</span>';}
+ try{
+  var s=await (await fetch('/status')).json();
+  if(s.connected){setBadge('ok','connected as +'+s.user);document.getElementById('box').innerHTML='<div class="steps" style="text-align:center;font-size:14px;line-height:1.8">\u2705 Bot is live!<br>Open WhatsApp and type <b>.menu</b></div>';return}
+  if(s.pairingCode){code=s.pairingCode;render();setBadge('ok','code ready \u2014 expires in ~2 min');return}
+  if(s.lastError&&s.lastError.indexOf('401')>-1){setBadge('err','fresh session \u2014 enter your number');}
+  else setBadge('','waiting for pairing\u2026');
+  if(!code)render();
+ }catch(e){setBadge('err','connection lost \u2014 retrying\u2026')}
 }
-refresh(); setInterval(refresh,4000);
+render();refresh();setInterval(refresh,4000);
 </script></body></html>`);
 });
 
