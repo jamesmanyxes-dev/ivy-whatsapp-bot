@@ -182,7 +182,7 @@ async function onMessage({ messages }) {
   console.log(`[cmd] ${jid} -> ${name}`);
   const c = {
     jid, msg, sender, sock, args, all: cmd.all, desc: cmd.desc,
-    cmd: name, owner: botState.owner, isOwner: sender.split('@')[0] === (botState.owner || '').split('@')[0] || sender.split('@')[0] === state.user,
+    cmd: name, owner: botState.owner, ownerName: 'evil', categories: cmd.categories, isOwner: sender.split('@')[0] === (botState.owner || '').split('@')[0] || sender.split('@')[0] === state.user,
     chatbotOn: () => botState.chatbotOn,
     setChatbot: (v) => { botState.chatbotOn = v; return ANTHROPIC_KEY ? '' : '⚠️ No Claude API key set yet — ask the owner to add it to secrets.json.'; },
     banUser: (n, on) => { if (on) botState.bans.add(n); else botState.bans.delete(n); },
