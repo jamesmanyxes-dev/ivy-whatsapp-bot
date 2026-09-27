@@ -354,54 +354,136 @@ async function chatWithClaude(jid, text, oneShot = false) {
 
 // ================= TELEGRAM =================
 let tgOffset = 0;
-async function tg(method, body) {
-  const r = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/${method}`, {
-    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body || {}),
-  });
-  return r.json();
+const MONO = { parse_mode: 'Markdown' };
+
+function fancyMenu(ctx) {
+  const up = Math.floor(process.uptime());
+  const h = Math.floor(up / 3600), m = Math.floor((up % 3600) / 60), sec = up % 60;
+  const runtime = h > 0 ? h + 'h ' + m + 'm ' + sec + 's' : m + 'm ' + sec + 's';
+  const name = ctx.from?.first_name || 'friend';
+  const wa = botState.connected ? '\u2705 ONLINE' : '\u26d4 OFFLINE';
+  const lines = [
+    '\u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510',
+    '  \u26a1 \ud83d\udc0d evil\u2076\u2076\u2076MD \ud83d\udc0d \u26a1',
+    '  ELITE COMMAND CONSOLE',
+    '\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518',
+    '',
+    '\ud83c\udf39 WELCOME, ' + name.toUpperCase(),
+    '',
+    '\u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510',
+    '\u2502 \ud83e\udd16 BOT      \u27a4 evil\u2076\u2076\u2076MD',
+    '\u2502 \ud83d\ude80 STATUS    \u27a4 \u25cf ' + (botState.chatbotOn ? 'AI ON' : 'READY'),
+    '\u2502 \ud83d\udc41 WHATSAPP  \u27a4 ' + wa,
+    '\u2502 \u23f1 RUNTIME   \u27a4 ' + runtime,
+    '\u2502 \ud83d\udc51 CREATOR   \u27a4 evil',
+    '\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518',
+    '',
+    '\u250c [ \ud83d\udc51 OWNER MODULE ] \u2510',
+    '',
+    ' \u2022 /pair   \u2014 link a WhatsApp number',
+    ' \u2022 /status \u2014 live connection report',
+    ' \u2022 /menu   \u2014 full WhatsApp command list',
+    ' \u2022 /chatbot \u2014 AI auto-reply on/off',
+    ' \u2022 /ping   \u2014 check bot speed',
+    '',
+    '\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550',
+    ' \u00a9 evil\u2076\u2076\u2076MD \u2026 powered by evil',
+  ].join('\n');
+  return lines;
+}
+
+function mainKeyboard() {
+  return {
+    inline_keyboard: [
+      [ { text: '\u2671 PAIR WHATSAPP', callback_data: 'do_pair' }, { text: '\u2671 STATUS', callback_data: 'do_status' } ],
+      [ { text: '\u2671 MENU', callback_data: 'do_menu' }, { text: '\u2671 CHATBOT', callback_data: 'do_chatbot' } ],
+      [ { text: '\u2671 PING', callback_data: 'do_ping' }, { text: '\u2671 OWNER', callback_data: 'do_owner' } ],
+      [ { text: '\u2139\ufe0f ABOUT evil\u2076\u2076\u2076MD', url: 'https://github.com/jamesmanyxes-dev/ivy-whatsapp-bot' } ],
+    ],
+  };
 }
 
 async function startTelegram() {
   const me = await tg('getMe');
   if (!me.ok) return console.error('[TG] bad token:', me.description);
-  console.log('[TG] evil⁶⁶⁶MD Telegram bot live as @' + me.result.username);
-  const menu = { commands: [
-    { command: 'start', description: 'Start / intro' },
+  console.log('[TG] evil\u2076\u2076\u2076MD Telegram bot live as @' + me.result.username);
+  await tg('setMyCommands', { commands: [
+    { command: 'start', description: 'Open the console' },
+    { command: 'menu', description: 'Full command console' },
     { command: 'pair', description: 'Pair WhatsApp: /pair 2335xxxxxxx' },
-    { command: 'status', description: 'WhatsApp connection status' },
-    { command: 'menu', description: 'List command categories' },
-  ] };
-  await tg('setMyCommands', menu);
+    { command: 'status', description: 'Connection status' },
+    { command: 'chatbot', description: 'AI auto-reply on/off' },
+    { command: 'ping', description: 'Bot speed' },
+  ]});
 
   for (;;) {
     try {
       const r = await tg('getUpdates', { offset: tgOffset + 1, timeout: 25 });
       for (const u of r.result || []) {
         tgOffset = u.update_id;
-        const m = u.message; if (!m?.text) continue;
+
+        // inline button presses
+        if (u.callback_query) {
+          const q = u.callback_query;
+          tg('answerCallbackQuery', { callback_query_id: q.id }).catch(() => {});
+          const chatId = q.message.chat.id;
+          const act = q.data;
+          if (act === 'do_pair') {
+            await tg('sendMessage', { chat_id: chatId, text: '\ud83d\udcf2 *PAIR WHATSAPP*\n\nSend your number like:\n`/pair 233501234567`\n\nThen on the phone: WhatsApp \u2192 Settings \u2192 Linked Devices \u2192 Link a Device \u2192 *Link with phone number instead* \u2192 type the code.', parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '\u2139\ufe0f Open pair page', url: 'http://45.151.122.219:2232' }]] } });
+          } else if (act === 'do_status') {
+            const s = state.connected ? '\u2705 Connected as +' + state.user : '\u26d4 Not paired. Use /pair <number>';
+            await tg('sendMessage', { chat_id: chatId, text: '\ud83d\udcca *STATUS*\n' + s + (state.lastError ? '\n\u26a0\ufe0f ' + state.lastError : ''), parse_mode: 'Markdown' });
+          } else if (act === 'do_menu') {
+            await tg('sendMessage', { chat_id: chatId, text: fancyMenu({ from: q.from }), parse_mode: 'Markdown', reply_markup: mainKeyboard() });
+          } else if (act === 'do_chatbot') {
+            const val = !botState.chatbotOn;
+            botState.chatbotOn = val;
+            await tg('sendMessage', { chat_id: chatId, text: '\ud83e\udd16 AI chatbot is now *' + (val ? 'ON' : 'OFF') + '*' + (ANTHROPIC_KEY && !ANTHROPIC_KEY.startsWith('placeho') ? '' : '\n\u26a0\ufe0f Claude key missing \u2014 AI replies need it.'), parse_mode: 'Markdown' });
+          } else if (act === 'do_ping') {
+            await tg('sendMessage', { chat_id: chatId, text: '\ud83c\udf93 pong \u2014 ' + Math.floor(process.uptime()) + 's uptime' });
+          } else if (act === 'do_owner') {
+            await tg('sendMessage', { chat_id: chatId, text: '\ud83d\udc51 *evil\u2076\u2076\u2076MD*\nCreator: evil\nEngine: Baileys + Claude', parse_mode: 'Markdown' });
+          }
+          continue;
+        }
+
+        const m = u.message; if (!m || !m.text) continue;
         const chatId = m.chat.id;
-        const reply = (t) => tg('sendMessage', { chat_id: chatId, text: t, parse_mode: 'Markdown' });
+        const reply = (t, extra = {}) => tg('sendMessage', { chat_id: chatId, text: t, ...extra });
         const [c, ...rest] = m.text.trim().split(/\s+/);
         const name = c.replace(/^\//, '').toLowerCase();
         try {
-          if (name === 'start' || name === 'help') {
-            await reply(`🌑 *${NAME}*\n\nPair your WhatsApp:\n\`/pair 2335xxxxxxx\`\n\nThen on WhatsApp → Linked Devices → Link with phone number, and type the code.\n\n/status — connection status\n/menu — command list`);
+          if (name === 'start') {
+            const photo = 'https://i.imgur.com/your-banner.jpeg'; // replaced by actual banner below
+            const banner = await (async () => { try { const j = await (await fetch('https://nekos.best/api/v2/waifu')).json(); return j.results[0].url; } catch { return null; } })();
+            const cap = fancyMenu(m);
+            const kb = { reply_markup: mainKeyboard() };
+            if (banner) await tg('sendPhoto', { chat_id: chatId, photo: banner, caption: cap, parse_mode: 'Markdown', ...kb });
+            else await reply(cap, kb);
+          } else if (name === 'menu') {
+            await reply(fancyMenu(m), { reply_markup: mainKeyboard() });
           } else if (name === 'pair') {
             const n = rest.join('').replace(/[^0-9]/g, '');
-            if (!n) await reply('Send your number: `/pair 2335xxxxxxx`');
+            if (!n) await reply('\ud83d\udcf2 Send your number: `/pair 2335xxxxxxx`', { parse_mode: 'Markdown' });
             else {
-              await reply('📲 Requesting pairing code for +' + n + '…');
-              try { const code = await requestPairingCode(n); await reply(`✅ *Pairing code:* \`${code}\`\n\nOn the phone: WhatsApp → Linked Devices → Link a Device → **Link with phone number instead** → type this code.`); }
-              catch (e) { await reply('⚠️ ' + e.message); }
+              await reply('\ud83d\udcf2 Requesting pairing code for +' + n + '\u2026');
+              try {
+                const code = await requestPairingCode(n);
+                await tg('sendPhoto', { chat_id: chatId, photo: 'https://nekos.best/api/v2/waifu', caption: '.', }).catch(() => {});
+                await reply('\u2705 *PAIRING CODE:* `' + code + '`\n\nOn the phone: WhatsApp \u2192 Linked Devices \u2192 Link a Device \u2192 *Link with phone number instead* \u2192 type this code.\n\n\u23f3 Code expires in ~2 minutes.', { parse_mode: 'Markdown' });
+              } catch (e) { await reply('\u26a0\ufe0f ' + e.message); }
             }
           } else if (name === 'status') {
-            await reply(state.connected ? `✅ Connected as +${state.user}` : `⏳ Not paired. Use /pair <number>${state.lastError ? `\n⚠️ ${state.lastError}` : ''}`);
-          } else if (name === 'menu') {
-            await reply(`🌑 *${NAME}* — ${Object.keys(cmd.all).length}+ WhatsApp commands:\ncore (ping, menu) • tools (calc, weather, define, translate, crypto) • fun (joke, quote, ship, love) • group (tagall, kick, promote) • owner (setname, setbio, block)`);
+            const s = state.connected ? '\u2705 Connected as +' + (state.user || '') : '\u26d4 Not paired. Use /pair <number>';
+            await reply('\ud83d\udcca *STATUS*\n' + s + (state.lastError ? '\n\u26a0\ufe0f ' + state.lastError : ''), { parse_mode: 'Markdown' });
+          } else if (name === 'chatbot') {
+            const arg = (rest[0] || '').toLowerCase();
+            if (arg === 'on' || arg === 'off') { botState.chatbotOn = arg === 'on'; await reply('\ud83e\udd16 Chatbot *' + arg.toUpperCase() + '* \u2014 I ' + (botState.chatbotOn ? 'will now reply when tagged/replied in chats.' : 'will stay quiet unless you use .ai.'), { parse_mode: 'Markdown' }); }
+            else await reply('\ud83e\udd16 Chatbot is *' + (botState.chatbotOn ? 'ON' : 'OFF') + '*.\nUsage: `/chatbot on` or `/chatbot off`', { parse_mode: 'Markdown' });
           } else if (name === 'ping') {
-            await reply('🏓 pong');
+            await reply('\ud83c\udf93 pong \u2014 ' + Math.floor(process.uptime()) + 's uptime');
           } else {
-            await reply('Unknown command. Try /start');
+            await reply('Unknown command \u2014 tap the buttons or try /start');
           }
         } catch (e) { console.error('[TG]', e.message); }
       }
